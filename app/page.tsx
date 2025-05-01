@@ -1,103 +1,442 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useEffect, useState } from "react";
+import { Web3Auth } from "@web3auth/modal";
+import { CHAIN_NAMESPACES, IAdapter, IProvider, UX_MODE, WALLET_ADAPTERS, WEB3AUTH_NETWORK, getSolanaChainConfig } from "@web3auth/base";
+import { AuthAdapter, WHITE_LABEL_THEME, WhiteLabelData } from "@web3auth/auth-adapter";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+import RPC from "@/utils/solanaRPC";
+import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
+import { Button } from "@/components/ui/Button";
+import axios from "axios";
+
+const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc"; // get from https://dashboard.web3auth.io
+
+function App() {
+  const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
+  const [provider, setProvider] = useState<IProvider | null>(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const chainConfig = getSolanaChainConfig(0x3)!;
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const solanaPrivateKeyPrvoider = new SolanaPrivateKeyProvider({
+          config: { chainConfig: chainConfig },
+        });
+
+        const web3auth = new Web3Auth({
+          clientId,
+          web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+          chainConfig: {
+            chainNamespace: CHAIN_NAMESPACES.SOLANA,
+            chainId: "0x3", // Use "0x1" for mainnet
+            rpcTarget: "https://api.devnet.solana.com",
+            displayName: "Solana Devnet",
+            blockExplorerUrl: "https://explorer.solana.com/?cluster=devnet",
+            ticker: "SOL",
+            tickerName: "Solana",
+          },
+          privateKeyProvider: solanaPrivateKeyPrvoider,
+        });
+
+        // Setup external adapters
+        const authAdapter = new AuthAdapter({
+          adapterSettings: {
+            clientId, //Optional - Provide only if you haven't provided it in the Web3Auth Instantiation Code
+            network: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET, // Optional - Provide only if you haven't provided it in the Web3Auth Instantiation Code
+            uxMode: UX_MODE.REDIRECT,
+            whiteLabel: {
+              appName: "W3A Heroes",
+              appUrl: "https://web3auth.io",
+              logoLight: "https://web3auth.io/images/web3auth-logo.svg",
+              logoDark: "https://web3auth.io/images/web3auth-logo---Dark.svg",
+              defaultLanguage: "en", // en, de, ja, ko, zh, es, fr, pt, nl, tr
+              mode: "dark", // whether to enable dark mode. defaultValue: auto
+              theme: {
+                primary: "#00D1B2",
+              } as WHITE_LABEL_THEME,
+              useLogoLoader: true,
+            } as WhiteLabelData,
+          },
+          privateKeyProvider: solanaPrivateKeyPrvoider,
+        });
+        web3auth.configureAdapter(authAdapter);
+
+        setWeb3auth(web3auth);
+
+        await web3auth.initModal({
+          modalConfig: {
+            [WALLET_ADAPTERS.AUTH]: {
+              label: "auth",
+              loginMethods: {
+                google: {
+                  name: "google login",
+                  logoDark: "url to your custom logo which will shown in dark mode",
+                },
+                facebook: {
+                  // it will hide the facebook option from the Web3Auth modal.
+                  name: "facebook login",
+                  showOnModal: false,
+                },
+                reddit: {
+                  name: "reddit login",
+                  showOnModal: false,
+                },
+                twitch: {
+                  name: "twitch login",
+                  showOnModal: false,
+                },
+                discord: {
+                  name: "discord login",
+                  showOnModal: false,
+                },
+                line: {
+                  name: "line login",
+                  showOnModal: false,
+                },
+                linkedin: {
+                  name: "linkedin login",
+                  showOnModal: false,
+                },
+                twitter: {
+                  name: "twitter login",
+                  showOnModal: false,
+                },
+                github: {
+                  name: "github login",
+                  showOnModal: false,
+                },
+                apple: {
+                  name: "apple login",
+                  showOnModal: false,
+                },
+                x: {
+                  name: "x login",
+                  showOnModal: false,
+                },
+                wechat: {
+                  name: "wechat login",
+                  showOnModal: false,
+                },
+                weibo: {
+                  name: "weibo login",
+                  showOnModal: false,
+                },
+                kakao: {
+                  name: "kakao login",
+                  showOnModal: false,
+                },
+                farcaster: {
+                  name: "farcaster login",
+                  showOnModal: false,
+                },
+                email_passwordless: {
+                  name: "email_passwordless login",
+                  showOnModal: false
+                },
+                sms_passwordless: {
+                  name: "sms-passwordless login",
+                  showOnModal: false
+                }
+              },
+              // setting it to false will hide all social login methods from modal.
+              showOnModal: true,
+            },
+          },
+        });
+        setProvider(web3auth.provider);
+
+        if (web3auth.connected) {
+          setLoggedIn(true);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    init();
+  }, []);
+
+  const login = async () => {
+    if (!web3auth) {
+      uiConsole("web3auth not initialized yet");
+      return;
+    }
+    const web3authProvider = await web3auth.connect();
+
+    if (web3auth.connected) {
+      setLoggedIn(true);
+    }
+    setProvider(web3authProvider);
+  };
+
+  const addChain = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+
+    // Get custom chain configs for your chain from https://web3auth.io/docs/connect-blockchain
+    const chainConfig = getSolanaChainConfig(0x3)!;
+
+    await web3auth?.addChain(chainConfig);
+    uiConsole("New Chain Added");
+  };
+
+  const switchChain = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    await web3auth?.switchChain({ chainId: "0x3" });
+    uiConsole("Chain Switched");
+  };
+
+  const authenticateUser = async () => {
+    if (!web3auth) {
+      uiConsole("web3auth not initialized yet");
+      return;
+    }
+    const idToken = await web3auth.authenticateUser();
+    uiConsole(idToken);
+  };
+
+  const getUserInfo = async () => {
+    if (!web3auth) {
+      uiConsole("web3auth not initialized yet");
+      return;
+    }
+    const user = await web3auth.getUserInfo();
+    uiConsole(user);
+  };
+
+  const logout = async () => {
+    if (!web3auth) {
+      uiConsole("web3auth not initialized yet");
+      return;
+    }
+    await web3auth.logout();
+    setProvider(null);
+    setLoggedIn(false);
+  };
+
+  const getAccounts = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const address = await rpc.getAccounts();
+    uiConsole(address);
+  };
+
+  const getBalance = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const balance = await rpc.getBalance();
+    uiConsole(balance);
+  };
+
+  const sendTransaction = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const receipt = await rpc.sendTransaction();
+    uiConsole(receipt);
+  };
+
+  const sendVersionTransaction = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const receipt = await rpc.sendVersionTransaction();
+    uiConsole(receipt);
+  };
+
+  const signVersionedTransaction = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const receipt = await rpc.signVersionedTransaction();
+    uiConsole(receipt);
+  };
+
+  const signAllVersionedTransaction = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const receipt = await rpc.signAllVersionedTransaction();
+    uiConsole(receipt);
+  };
+
+  const signAllTransaction = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const receipt = await rpc.signAllTransaction();
+    uiConsole(receipt);
+  };
+
+  const signMessage = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const signedMessage = await rpc.signMessage();
+    uiConsole(signedMessage);
+  };
+
+  const getPrivateKey = async () => {
+    if (!provider) {
+      uiConsole("provider not initialized yet");
+      return;
+    }
+    const rpc = new RPC(provider);
+    const privateKey = await rpc.getPrivateKey();
+    uiConsole(privateKey);
+  };
+
+  function uiConsole(...args: any[]): void {
+    const el = document.querySelector("#console>p");
+    if (el) {
+      el.innerHTML = JSON.stringify(args || {}, null, 2);
+    }
+  }
+
+  const loggedInView = (
+    <>
+      <div className="flex-container">
+        <div>
+          <Button variant='outline' onClick={getUserInfo} className="card">
+            Get User Info
+          </Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
+        <div>
+          <Button variant='outline' onClick={authenticateUser} className="card">
+            Get ID Token
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={addChain} className="card">
+            Add Chain
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={switchChain} className="card">
+            Switch Chain
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={getAccounts} className="card">
+            Get Account
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={getBalance} className="card">
+            Get Balance
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={sendTransaction} className="card">
+            Send Transaction
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={sendVersionTransaction} className="card">
+            Send Version Transaction
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={signVersionedTransaction} className="card">
+            Sign Versioned Transaction
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={signAllVersionedTransaction} className="card">
+            Sign All Versioned Transaction
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={signAllTransaction} className="card">
+            Sign All Transaction
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={signMessage} className="card">
+            Sign Message
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={getPrivateKey} className="card">
+            Get Private Key
+          </Button>
+        </div>
+        <div>
+          <Button variant='outline' onClick={logout} className="card">
+            Log Out
+          </Button>
+        </div>
+      </div>
+      <div id="console" style={{ whiteSpace: "pre-line" }}>
+        <p style={{ whiteSpace: "pre-line" }}>Logged in Successfully!</p>
+      </div>
+    </>
+  );
+
+  const unloggedInView = (
+    <Button variant='outline' onClick={login} className="card">
+      Login
+    </Button>
+  );
+
+  const saveUserToDB = async () => {
+    if (!web3auth) {
+      uiConsole("web3auth not initialized yet");
+      console.log("web3auth not initialized yet")
+      return;
+    }
+    console.log("setting user");
+    const user = await web3auth.getUserInfo();
+    const response = await axios.post('/api/auth/signup/', {
+      email: user.email
+    });
+
+    console.log("response: ", response.data);
+  }
+  useEffect(() => {
+    if (loggedIn) {
+      saveUserToDB();
+    }
+  }, [loggedIn]);
+
+  return (
+    <div className="container">
+      <h1 className="title">
+        <a target="_blank" href="https://web3auth.io/docs/sdk/pnp/web/modal" rel="noreferrer">
+          Web3Auth{" "}
         </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        & React Solana Example
+      </h1>
+
+      <div className="grid">{loggedIn ? loggedInView : unloggedInView}</div>
     </div>
   );
 }
+
+export default App;
