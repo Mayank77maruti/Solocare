@@ -9,13 +9,19 @@ import RPC from "@/utils/solanaRPC";
 import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
 import { Button } from "@/components/ui/Button";
 import axios from "axios";
+import { GetProfileContext } from "@/context/UserContext";
+import { getBalance, getPrivateKey } from "@/utils/web3AuthHandler";
+import { Keypair } from "@solana/web3.js";
+import { createDataAccount } from "@/utils/transactionHandler";
 
 const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc"; // get from https://dashboard.web3auth.io
 
 function App() {
+  // const { web3auth, setWeb3auth, provider, setProvider } = GetProfileContext();
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [dataAccount, setDataAccount] = useState<string | null>(null);
 
   const chainConfig = getSolanaChainConfig(0x3)!;
 
@@ -159,6 +165,18 @@ function App() {
     init();
   }, []);
 
+  const hexToUint8Array = (hexString: string): Uint8Array => {
+    if (hexString.length % 2 !== 0) {
+        throw new Error('Invalid hex string');
+    }
+    const arrayBuffer = new Uint8Array(hexString.length / 2);
+    for (let i = 0; i < hexString.length; i += 2) {
+        const byteValue = parseInt(hexString.substr(i, 2), 16);
+        arrayBuffer[i / 2] = byteValue;
+    }
+    return arrayBuffer;
+  };
+
   const login = async () => {
     if (!web3auth) {
       uiConsole("web3auth not initialized yet");
@@ -172,144 +190,14 @@ function App() {
     setProvider(web3authProvider);
   };
 
-  const addChain = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-
-    // Get custom chain configs for your chain from https://web3auth.io/docs/connect-blockchain
-    const chainConfig = getSolanaChainConfig(0x3)!;
-
-    await web3auth?.addChain(chainConfig);
-    uiConsole("New Chain Added");
-  };
-
-  const switchChain = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    await web3auth?.switchChain({ chainId: "0x3" });
-    uiConsole("Chain Switched");
-  };
-
-  const authenticateUser = async () => {
-    if (!web3auth) {
-      uiConsole("web3auth not initialized yet");
-      return;
-    }
-    const idToken = await web3auth.authenticateUser();
-    uiConsole(idToken);
-  };
-
-  const getUserInfo = async () => {
-    if (!web3auth) {
-      uiConsole("web3auth not initialized yet");
-      return;
-    }
-    const user = await web3auth.getUserInfo();
-    uiConsole(user);
-  };
-
   const logout = async () => {
-    if (!web3auth) {
-      uiConsole("web3auth not initialized yet");
-      return;
-    }
-    await web3auth.logout();
-    setProvider(null);
-    setLoggedIn(false);
-  };
-
-  const getAccounts = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const address = await rpc.getAccounts();
-    uiConsole(address);
-  };
-
-  const getBalance = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const balance = await rpc.getBalance();
-    uiConsole(balance);
-  };
-
-  const sendTransaction = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const receipt = await rpc.sendTransaction();
-    uiConsole(receipt);
-  };
-
-  const sendVersionTransaction = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const receipt = await rpc.sendVersionTransaction();
-    uiConsole(receipt);
-  };
-
-  const signVersionedTransaction = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const receipt = await rpc.signVersionedTransaction();
-    uiConsole(receipt);
-  };
-
-  const signAllVersionedTransaction = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const receipt = await rpc.signAllVersionedTransaction();
-    uiConsole(receipt);
-  };
-
-  const signAllTransaction = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const receipt = await rpc.signAllTransaction();
-    uiConsole(receipt);
-  };
-
-  const signMessage = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const signedMessage = await rpc.signMessage();
-    uiConsole(signedMessage);
-  };
-
-  const getPrivateKey = async () => {
-    if (!provider) {
-      uiConsole("provider not initialized yet");
-      return;
-    }
-    const rpc = new RPC(provider);
-    const privateKey = await rpc.getPrivateKey();
-    uiConsole(privateKey);
+      if (!web3auth) {
+          console.log("web3auth not initialized yet");
+          return;
+      }
+      await web3auth.logout();
+      setProvider(null);
+      setLoggedIn(false);
   };
 
   function uiConsole(...args: any[]): void {
@@ -319,95 +207,45 @@ function App() {
     }
   }
 
-  const loggedInView = (
-    <>
-      <div className="flex-container">
-        <div>
-          <Button variant='outline' onClick={getUserInfo} className="card">
-            Get User Info
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={authenticateUser} className="card">
-            Get ID Token
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={addChain} className="card">
-            Add Chain
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={switchChain} className="card">
-            Switch Chain
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={getAccounts} className="card">
-            Get Account
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={getBalance} className="card">
-            Get Balance
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={sendTransaction} className="card">
-            Send Transaction
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={sendVersionTransaction} className="card">
-            Send Version Transaction
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={signVersionedTransaction} className="card">
-            Sign Versioned Transaction
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={signAllVersionedTransaction} className="card">
-            Sign All Versioned Transaction
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={signAllTransaction} className="card">
-            Sign All Transaction
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={signMessage} className="card">
-            Sign Message
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={getPrivateKey} className="card">
-            Get Private Key
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={logout} className="card">
-            Log Out
-          </Button>
-        </div>
-      </div>
-      <div id="console" style={{ whiteSpace: "pre-line" }}>
-        <p style={{ whiteSpace: "pre-line" }}>Logged in Successfully!</p>
-      </div>
-    </>
-  );
+  const createDataAccountForUser = async () => {
+    if (!web3auth) {
+      console.log("web3auth not initialized yet")
+      return;
+    }
+    const user = await web3auth.getUserInfo();
+    const userPrivateKey = await getPrivateKey(provider);
+    if (!userPrivateKey) return console.log("userPrivateKey not found");
+    console.log("userPrivateKey: ", userPrivateKey);
+    const privateKeyUint8Array = hexToUint8Array(userPrivateKey);
+    const userKeyPair = Keypair.fromSecretKey(privateKeyUint8Array);
+    const dataPublicKey = await createDataAccount(userKeyPair, user.email);
 
-  const unloggedInView = (
-    <Button variant='outline' onClick={login} className="card">
-      Login
-    </Button>
-  );
+    console.log("dataPublicKey: ", dataPublicKey);
+  }
+
+  const checkForDataAccount = async () => {
+    if (!web3auth) {
+      console.log("web3auth not initialized yet")
+      return;
+    }
+    const user = await web3auth.getUserInfo();
+    const response = await axios.post('/api/auth/get-data-account/', {
+      email: user.email
+    });
+
+    console.log("checkForDataAccount: ", response.data);
+
+    if (!response.data.success) {
+      console.log("Data account not found");
+      setDataAccount(null);
+    } else {
+      console.log("Date account found");
+      setDataAccount(response.data.dataAccount);
+    }
+  }
 
   const saveUserToDB = async () => {
     if (!web3auth) {
-      uiConsole("web3auth not initialized yet");
       console.log("web3auth not initialized yet")
       return;
     }
@@ -419,11 +257,45 @@ function App() {
 
     console.log("response: ", response.data);
   }
+
+  const loggedInView = (
+    <>
+      <div className="flex-container">
+        <div>
+          <Button variant='outline' onClick={async () => {
+            const balance = await getBalance(provider);
+            uiConsole(balance);
+          }} className="card">
+            Get Balance
+          </Button>
+        </div>
+        {
+          dataAccount &&
+          <Button variant='outline' onClick={createDataAccountForUser} className="card">
+            Make Data Account
+          </Button>
+        }
+        <div>
+          <Button variant='outline' onClick={logout} className="card">
+            Log Out
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+
+  const unloggedInView = (
+    <Button variant='outline' onClick={login} className="card">
+      Login
+    </Button>
+  );
+
   useEffect(() => {
-    if (loggedIn) {
+    if (loggedIn && web3auth?.connected) {
       saveUserToDB();
+      checkForDataAccount();
     }
-  }, [loggedIn]);
+  }, [loggedIn, web3auth?.connected]);
 
   return (
     <div className="container">
