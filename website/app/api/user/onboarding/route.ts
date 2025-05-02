@@ -3,10 +3,10 @@ import { PrismaClient } from '@prisma/client'
 
 const client = new PrismaClient();
 
-export async function POST(req: NextRequest) {
+export async function PUT(req: NextRequest) {
     const body = await req.json();
     try {
-        const { email } = body;
+        const { email, firstName, lastName } = body;
 
         const existingUser = await client.user.findUnique({
             where: {
@@ -14,40 +14,32 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        if (existingUser) {
+        if (!existingUser) {
             return NextResponse.json({
                 success: false,
-                message: "User already exists"
+                message: "User does not exist"
             });
         }
 
-        const role = await client.role.findUnique({
+        const updatedUser = await client.user.update({
             where: {
-                name: 'PATIENT'
-            }
-        });
-
-        if (!role) {
-            return NextResponse.json({
-                success: false,
-                message: "Role not found"
-            })
-        }
-
-        const newUser = await client.user.create({
+                email: email
+            },
             data: {
-                email: email,
-                roleId: role.id
+                firstname: firstName,
+                lastname: lastName
             }
         });
 
         return NextResponse.json({
-            user: newUser,
+            updatedUser: updatedUser,
             success: true,
         });
     } catch (error) {
         return NextResponse.json({
             success: false,
+            // @ts-ignore
+            message: `Error saving dataAccount: ${error.message}`
         });
     }
 }

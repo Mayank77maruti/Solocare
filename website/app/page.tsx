@@ -1,28 +1,23 @@
 "use client";
 
+import Navbar from '@/components/PagesUi/Navbar';
 import { useEffect, useState } from "react";
 import { Web3Auth } from "@web3auth/modal";
-import { CHAIN_NAMESPACES, IAdapter, IProvider, UX_MODE, WALLET_ADAPTERS, WEB3AUTH_NETWORK, getSolanaChainConfig } from "@web3auth/base";
+import { CHAIN_NAMESPACES, IProvider, UX_MODE, WALLET_ADAPTERS, WEB3AUTH_NETWORK, getSolanaChainConfig } from "@web3auth/base";
 import { AuthAdapter, WHITE_LABEL_THEME, WhiteLabelData } from "@web3auth/auth-adapter";
-
-import RPC from "@/utils/solanaRPC";
 import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
-import { Button } from "@/components/ui/Button";
 import axios from "axios";
-import { GetProfileContext } from "@/context/UserContext";
-import { getBalance, getPrivateKey } from "@/utils/web3AuthHandler";
-import { Keypair } from "@solana/web3.js";
-import { createDataAccount } from "@/utils/transactionHandler";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 
-const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc"; // get from https://dashboard.web3auth.io
+const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc";
 
-function App() {
-  // const { web3auth, setWeb3auth, provider, setProvider } = GetProfileContext();
+export default function Home() {
+  const router = useRouter();
+
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [dataAccount, setDataAccount] = useState<string | null>(null);
 
   const chainConfig = getSolanaChainConfig(0x3)!;
 
@@ -166,21 +161,9 @@ function App() {
     init();
   }, []);
 
-  const hexToUint8Array = (hexString: string): Uint8Array => {
-    if (hexString.length % 2 !== 0) {
-        throw new Error('Invalid hex string');
-    }
-    const arrayBuffer = new Uint8Array(hexString.length / 2);
-    for (let i = 0; i < hexString.length; i += 2) {
-        const byteValue = parseInt(hexString.substr(i, 2), 16);
-        arrayBuffer[i / 2] = byteValue;
-    }
-    return arrayBuffer;
-  };
-
   const login = async () => {
     if (!web3auth) {
-      uiConsole("web3auth not initialized yet");
+      console.log("web3auth not initialized yet");
       return;
     }
     const web3authProvider = await web3auth.connect();
@@ -201,56 +184,6 @@ function App() {
       setLoggedIn(false);
   };
 
-  function uiConsole(...args: any[]): void {
-    const el = document.querySelector("#console>p");
-    if (el) {
-      el.innerHTML = JSON.stringify(args || {}, null, 2);
-    }
-  }
-
-  const createDataAccountForUser = async () => {
-    if (!web3auth) {
-      console.log("web3auth not initialized yet")
-      return;
-    }
-    const user = await web3auth.getUserInfo();
-    const userPrivateKey = await getPrivateKey(provider);
-    if (!userPrivateKey) return console.log("userPrivateKey not found");
-    console.log("userPrivateKey: ", userPrivateKey);
-    const privateKeyUint8Array = hexToUint8Array(userPrivateKey);
-    const userKeyPair = Keypair.fromSecretKey(privateKeyUint8Array);
-    const dataPublicKey = await createDataAccount(userKeyPair, user.email);
-
-    if (!dataPublicKey) {
-      setDataAccount(null);
-      return console.log("dataPublicKey not created");
-    }
-
-    console.log("dataPublicKey: ", dataPublicKey);
-    setDataAccount(dataPublicKey);
-  }
-
-  const checkForDataAccount = async () => {
-    if (!web3auth) {
-      console.log("web3auth not initialized yet")
-      return;
-    }
-    const user = await web3auth.getUserInfo();
-    const response = await axios.post('/api/user/get-data-account/', {
-      email: user.email
-    });
-
-    console.log("checkForDataAccount: ", response.data);
-
-    if (!response.data.success) {
-      console.log("Data account not found");
-      setDataAccount(null);
-    } else {
-      console.log("Date account found");
-      setDataAccount(response.data.dataAccount);
-    }
-  }
-
   const saveUserToDB = async () => {
     if (!web3auth) {
       console.log("web3auth not initialized yet")
@@ -263,66 +196,93 @@ function App() {
     });
 
     console.log("response: ", response.data);
+
+    if (response.data.success) {
+      router.push('/patient');
+    }
   }
-
-  const loggedInView = (
-    <>
-      <div className="flex-container">
-        <div className="my-2">
-          <Link href="/upload-record">
-            <Button variant='outline'>
-              Upload Record
-            </Button>
-          </Link>
-        </div>
-        {
-          !dataAccount &&
-          <Button variant='outline' onClick={createDataAccountForUser} className="card">
-            Make Data Account
-          </Button>
-        }
-        <div>
-          <Button variant='outline' onClick={async () => {
-            const balance = await getBalance(provider);
-            uiConsole(balance);
-          }} className="card">
-            Get Balance
-          </Button>
-        </div>
-        <div>
-          <Button variant='outline' onClick={logout} className="card">
-            Log Out
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-
-  const unloggedInView = (
-    <Button variant='outline' onClick={login} className="card">
-      Login
-    </Button>
-  );
 
   useEffect(() => {
     if (loggedIn && web3auth?.connected) {
       saveUserToDB();
-      checkForDataAccount();
     }
   }, [loggedIn, web3auth?.connected]);
 
   return (
-    <div className="container">
-      <h1 className="title">
-        <a target="_blank" href="https://web3auth.io/docs/sdk/pnp/web/modal" rel="noreferrer">
-          Web3Auth{" "}
-        </a>
-        & React Solana Example
-      </h1>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <Navbar />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
+            Welcome to{' '}
+            <span className="text-blue-600">Solocare</span>
+          </h1>
+          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+            Your trusted partner in healthcare management. Streamline your medical journey with our comprehensive platform.
+          </p>
+          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+            {
+              loggedIn ? (
+                <div className="rounded-md shadow">
+                  <Link
+                    href='/onboarding'
+                    className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                  >
+                    Dashboard
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-md shadow">
+                  <button
+                    onClick={login}
+                    className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                  >
+                    Login
+                  </button>
+                </div>
+              )
+            }
+          </div>
+        </div>
 
-      <div className="grid">{loggedIn ? loggedInView : unloggedInView}</div>
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-blue-600 mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Pre-screening</h3>
+            <p className="mt-2 text-base text-gray-500">
+              Complete a quick pre-screening assessment before your appointment to help doctors better understand your condition.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-blue-600 mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Medical Records</h3>
+            <p className="mt-2 text-base text-gray-500">
+              Access and manage your medical records securely in one place. Upload reports and view your health history.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-blue-600 mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Appointment Management</h3>
+            <p className="mt-2 text-base text-gray-500">
+              Schedule and manage your appointments easily. Receive reminders and updates about your upcoming visits.
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
-
-export default App;
