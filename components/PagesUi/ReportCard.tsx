@@ -1,4 +1,4 @@
-import { Report } from '../lib/mockData';
+import { Report } from '@/lib/mockData';
 import SeverityBadge from './SeverityBadge';
 
 interface ReportCardProps {
