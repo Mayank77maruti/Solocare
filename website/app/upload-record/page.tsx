@@ -360,7 +360,6 @@ function page() {
 
     return (
         <div className='flex flex-col items-center justify-center h-screen bg-gray-100'>
-            {/* <button onClick={() => getPrivateKey(provider)}>test</button> */}
             <h1 className='text-2xl font-bold'>Upload Record</h1>
             <p className='text-lg'>Upload your record here.</p>
             <form onSubmit={handleSubmit} className='flex flex-col my-4 border-2 border-gray-600 p-4 rounded-lg w-[60%]'>

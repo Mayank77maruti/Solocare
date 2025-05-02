@@ -221,7 +221,13 @@ function App() {
     const userKeyPair = Keypair.fromSecretKey(privateKeyUint8Array);
     const dataPublicKey = await createDataAccount(userKeyPair, user.email);
 
+    if (!dataPublicKey) {
+      setDataAccount(null);
+      return console.log("dataPublicKey not created");
+    }
+
     console.log("dataPublicKey: ", dataPublicKey);
+    setDataAccount(dataPublicKey);
   }
 
   const checkForDataAccount = async () => {
