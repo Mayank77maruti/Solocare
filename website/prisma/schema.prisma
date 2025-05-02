@@ -1,3 +1,21 @@
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// model User {
+//   id String @id @default(cuid())
+//   firstname String?
+//   lastname String?
+//   email String @unique
+//   dataAccount String? @unique
+//   encryptionKey String?
+// }
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,10 +26,125 @@ datasource db {
 }
 
 model User {
-  id String @id @default(cuid())
-  firstname String?
-  lastname String?
-  email String @unique
+  id             String   @id @default(cuid())
+  firstname      String?
+  lastname       String?
+  email          String   @unique
+  encryptionKey  String   @default(cuid())
   dataAccount String? @unique
-  encryptionKey String?
+  roleId         String
+  role           Role     @relation(fields: [roleId], references: [id])
+  patient        Patient?
+  doctor         Doctor?
+  admin          Admin?
+}
+
+model Role {
+  id    String @id @default(cuid())
+  name  RoleName @unique
+  users User[]
+}
+
+enum RoleName {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+model Patient {
+  id             String          @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  name           String
+  email          String          @unique
+  phone          String
+  reports        MedicalReport[]
+  appointments   Appointment[]
+  preScreenings  PreScreening[]
+  createdAt      DateTime        @default(now())
+}
+
+model Doctor {
+  id            String          @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  name          String
+  email         String          @unique
+  specialty     String
+  appointments  Appointment[]
+  hospitals     Hospital[]      @relation("DoctorHospitals") // Removed references: [id]
+  createdAt     DateTime        @default(now())
+}
+
+model Admin {
+  id            String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  name          String
+  email         String   @unique
+  hospitalId    String
+  hospital      Hospital @relation("HospitalAdmins", fields: [hospitalId], references: [id]) // Added relation name
+  approvedAppointments Appointment[] // Added inverse relation
+  createdAt     DateTime @default(now())
+}
+
+model Hospital {
+  id         String    @id @default(uuid())
+  name       String
+  address    String
+  city       String
+  state      String
+  zipCode    String
+  country    String
+  admins     Admin[]   @relation("HospitalAdmins")
+  doctors    Doctor[]  @relation("DoctorHospitals")
+}
+
+model MedicalReport {
+  id         String   @id @default(uuid())
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  patientId  String
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+}
+
+model PreScreening {
+  id         String   @id @default(uuid())
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  patientId  String
+  summary    String
+  symptoms   String
+  severity   String
+  createdAt  DateTime @default(now())
+  appointment Appointment? // Added inverse relation
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  patient         Patient           @relation(fields: [patientId], references: [id])
+  patientId       String
+  doctor          Doctor?            @relation(fields: [doctorId], references: [id])
+  doctorId        String?
+  adminApprovedBy Admin?            @relation(fields: [adminId], references: [id])
+  adminId         String?
+  scheduledTime   DateTime?
+  queueNumber     Int?
+  status          AppointmentStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  preScreening    PreScreening?     @relation(fields: [preScreeningId], references: [id])
+  preScreeningId  String?           @unique // Added @unique for one-to-one relation
+
+  // Additional patient snapshot details
+  patientName     String
+  patientAge      Int
+  patientGender   String
+  patientEmail    String
+  patientPhone    String
+}
+
+enum AppointmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
 }
