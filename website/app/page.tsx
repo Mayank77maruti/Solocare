@@ -13,6 +13,7 @@ import { GetProfileContext } from "@/context/UserContext";
 import { getBalance, getPrivateKey } from "@/utils/web3AuthHandler";
 import { Keypair } from "@solana/web3.js";
 import { createDataAccount } from "@/utils/transactionHandler";
+import Link from "next/link";
 
 const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc"; // get from https://dashboard.web3auth.io
 
@@ -229,7 +230,7 @@ function App() {
       return;
     }
     const user = await web3auth.getUserInfo();
-    const response = await axios.post('/api/auth/get-data-account/', {
+    const response = await axios.post('/api/user/get-data-account/', {
       email: user.email
     });
 
@@ -261,6 +262,19 @@ function App() {
   const loggedInView = (
     <>
       <div className="flex-container">
+        <div className="my-2">
+          <Link href="/upload-record">
+            <Button variant='outline'>
+              Upload Record
+            </Button>
+          </Link>
+        </div>
+        {
+          !dataAccount &&
+          <Button variant='outline' onClick={createDataAccountForUser} className="card">
+            Make Data Account
+          </Button>
+        }
         <div>
           <Button variant='outline' onClick={async () => {
             const balance = await getBalance(provider);
@@ -269,12 +283,6 @@ function App() {
             Get Balance
           </Button>
         </div>
-        {
-          dataAccount &&
-          <Button variant='outline' onClick={createDataAccountForUser} className="card">
-            Make Data Account
-          </Button>
-        }
         <div>
           <Button variant='outline' onClick={logout} className="card">
             Log Out
