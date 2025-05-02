@@ -24,7 +24,7 @@ export default function PatientsManager() {
   }, []);
 
   const handleRowClick = (patientId: string) => {
-    router.push(`/admin/patient/${patientId}`);
+    router.push(`/admin/patients/${patientId}`);
   };
 
   const handleQueueClick = (patientId: string, e: React.MouseEvent) => {
