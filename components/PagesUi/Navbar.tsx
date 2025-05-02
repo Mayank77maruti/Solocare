@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface NavbarProps {
-  role: 'patient' | 'doctor' | 'admin';
+  role?: 'patient' | 'doctor' | 'admin';
 }
 
 export default function Navbar({ role }: NavbarProps) {
@@ -13,6 +13,25 @@ export default function Navbar({ role }: NavbarProps) {
   const isActive = (path: string) => {
     return pathname === path;
   };
+
+  if (!role) {
+    // Landing page mode
+    return (
+      <nav className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex-shrink-0 flex items-center">
+              <a href="/" className="text-xl font-bold text-blue-600">SoloCare</a>
+            </div>
+            <div className="flex items-center space-x-4">
+              <a href="/login" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">Login</a>
+              <a href="/signup" className="text-blue-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-50 border border-blue-600">Sign Up</a>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   const adminLinks = [
     { href: '/admin', label: 'Dashboard' },
