@@ -9,14 +9,12 @@ import { Web3Auth } from '@web3auth/modal';
 import { SolanaPrivateKeyProvider } from '@web3auth/solana-provider';
 import { Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import bs58 from 'bs58';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { addMedicalRecord, connection, createDataAccount, getDataAccount, getEncryptionKey, getExistingAccountData, PROGRAM_ID } from '@/utils/transactionHandler';
 import { decryptData, encryptData, importKey } from '@/utils/encryption';
 import { schema, solocareData } from '@/lib/contractTypes';
 import * as borsh from 'borsh';
-
-const { decode } = bs58;
+import axios from 'axios';
 
 interface recordData {
     fullName: string;
@@ -41,6 +39,7 @@ function page() {
     const [loggedIn, setLoggedIn] = useState(false);
     const [file, setFile] = React.useState<File | null>(null);
     const [fileName, setFileName] = React.useState<string>('');
+    const [dataAccount, setDataAccount] = useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -62,7 +61,26 @@ function page() {
         return arrayBuffer;
     };
 
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const checkForDataAccount = async () => {
+        if (!web3auth) {
+          console.log("web3auth not initialized yet")
+          return;
+        }
+        const user = await web3auth.getUserInfo();
+        const response = await axios.post('/api/user/get-data-account/', {
+          email: user.email
+        });
+    
+        console.log("checkForDataAccount: ", response.data);
+    
+        if (!response.data.success) {
+          console.log("Data account not found");
+          setDataAccount(null);
+        } else {
+          console.log("Date account found");
+          setDataAccount(response.data.dataAccount);
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -156,11 +174,42 @@ function page() {
 
             const signature = await addMedicalRecord(userKeyPair, new PublicKey(dataAccountPublicKey), dataBuffer);
             console.log("Add record transaction signature: ", signature);
+
+            setRecord({
+                fullName: '',
+                doctorName: '',
+                recordTitle: '',
+                date: '',
+                imageUrl: ''
+            });
+            setFile(null);
+            setFileName('');
         } catch (error) {
             console.log("Error uploading record: ", error);
         }
     }
 
+    const createDataAccountForUser = async () => {
+        if (!web3auth) {
+          console.log("web3auth not initialized yet")
+          return;
+        }
+        const user = await web3auth.getUserInfo();
+        const userPrivateKey = await getPrivateKey(provider);
+        if (!userPrivateKey) return console.log("userPrivateKey not found");
+        console.log("userPrivateKey: ", userPrivateKey);
+        const privateKeyUint8Array = hexToUint8Array(userPrivateKey);
+        const userKeyPair = Keypair.fromSecretKey(privateKeyUint8Array);
+        const dataPublicKey = await createDataAccount(userKeyPair, user.email);
+
+        if (!dataPublicKey) {
+            setDataAccount(null);
+            return console.log("dataPublicKey not created");
+        }
+    
+        console.log("dataPublicKey: ", dataPublicKey);
+        setDataAccount(dataPublicKey);
+    }
 
     const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc";
     const chainConfig = getSolanaChainConfig(0x3)!;
@@ -305,9 +354,12 @@ function page() {
         init();
     }, []);
 
+    useEffect(() => {
+        checkForDataAccount();
+    }, [loggedIn, web3auth?.connected]);
+
     return (
         <div className='flex flex-col items-center justify-center h-screen bg-gray-100'>
-            {/* <button onClick={() => getPrivateKey(provider)}>test</button> */}
             <h1 className='text-2xl font-bold'>Upload Record</h1>
             <p className='text-lg'>Upload your record here.</p>
             <form onSubmit={handleSubmit} className='flex flex-col my-4 border-2 border-gray-600 p-4 rounded-lg w-[60%]'>
@@ -332,7 +384,13 @@ function page() {
                     Medical Record
                 </label>
                 <input id='record' type="file" accept=".pdf,application/pdf" onChange={handleFileChange} hidden/>
-                <Button variant='outline' type="submit">Upload</Button>
+                {
+                    dataAccount ? (
+                        <Button variant='outline' type="submit">Upload</Button>
+                    ) : (
+                        <Button variant='outline' onClick={createDataAccountForUser} >Make Data Account</Button>
+                    )
+                }
             </form>
         </div>
     )
