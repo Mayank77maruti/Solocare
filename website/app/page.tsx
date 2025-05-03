@@ -1,212 +1,39 @@
 "use client";
 
 import Navbar from '@/components/PagesUi/Navbar';
-import { useEffect, useState } from "react";
-import { Web3Auth } from "@web3auth/modal";
-import { CHAIN_NAMESPACES, IProvider, UX_MODE, WALLET_ADAPTERS, WEB3AUTH_NETWORK, getSolanaChainConfig } from "@web3auth/base";
-import { AuthAdapter, WHITE_LABEL_THEME, WhiteLabelData } from "@web3auth/auth-adapter";
-import { SolanaPrivateKeyProvider } from "@web3auth/solana-provider";
-import axios from "axios";
+import { useEffect } from "react"; // Keep useEffect if needed for other purposes, otherwise remove
 import Link from "next/link";
-import { useRouter } from 'next/navigation';
-
-const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc";
+import { useRouter } from 'next/navigation'; // Keep if router is used elsewhere
+import { useAuth } from '@/context/AuthContext'; // Import the useAuth hook
 
 export default function Home() {
-  const router = useRouter();
+  const router = useRouter(); // Keep if needed
+  const { login, logout, loggedIn, user, isLoading } = useAuth(); // Use the context
 
-  const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
-  const [provider, setProvider] = useState<IProvider | null>(null);
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  const chainConfig = getSolanaChainConfig(0x3)!;
-
+  // Hooks must be called unconditionally before any returns
   useEffect(() => {
-    const init = async () => {
-      try {
-        const solanaPrivateKeyPrvoider = new SolanaPrivateKeyProvider({
-          config: { chainConfig: chainConfig },
-        });
-
-        const web3auth = new Web3Auth({
-          clientId,
-          web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
-          chainConfig: {
-            chainNamespace: CHAIN_NAMESPACES.SOLANA,
-            chainId: "0x3", // Use "0x1" for mainnet
-            rpcTarget: "https://api.devnet.solana.com",
-            displayName: "Solana Devnet",
-            blockExplorerUrl: "https://explorer.solana.com/?cluster=devnet",
-            ticker: "SOL",
-            tickerName: "Solana",
-          },
-          privateKeyProvider: solanaPrivateKeyPrvoider,
-        });
-
-        // Setup external adapters
-        const authAdapter = new AuthAdapter({
-          adapterSettings: {
-            clientId, //Optional - Provide only if you haven't provided it in the Web3Auth Instantiation Code
-            network: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET, // Optional - Provide only if you haven't provided it in the Web3Auth Instantiation Code
-            uxMode: UX_MODE.REDIRECT,
-            whiteLabel: {
-              appName: "W3A Heroes",
-              appUrl: "https://web3auth.io",
-              logoLight: "https://web3auth.io/images/web3auth-logo.svg",
-              logoDark: "https://web3auth.io/images/web3auth-logo---Dark.svg",
-              defaultLanguage: "en", // en, de, ja, ko, zh, es, fr, pt, nl, tr
-              mode: "dark", // whether to enable dark mode. defaultValue: auto
-              theme: {
-                primary: "#00D1B2",
-              } as WHITE_LABEL_THEME,
-              useLogoLoader: true,
-            } as WhiteLabelData,
-          },
-          privateKeyProvider: solanaPrivateKeyPrvoider,
-        });
-        web3auth.configureAdapter(authAdapter);
-
-        setWeb3auth(web3auth);
-
-        await web3auth.initModal({
-          modalConfig: {
-            [WALLET_ADAPTERS.AUTH]: {
-              label: "auth",
-              loginMethods: {
-                google: {
-                  name: "google login",
-                  logoDark: "url to your custom logo which will shown in dark mode",
-                },
-                facebook: {
-                  // it will hide the facebook option from the Web3Auth modal.
-                  name: "facebook login",
-                  showOnModal: false,
-                },
-                reddit: {
-                  name: "reddit login",
-                  showOnModal: false,
-                },
-                twitch: {
-                  name: "twitch login",
-                  showOnModal: false,
-                },
-                discord: {
-                  name: "discord login",
-                  showOnModal: false,
-                },
-                line: {
-                  name: "line login",
-                  showOnModal: false,
-                },
-                linkedin: {
-                  name: "linkedin login",
-                  showOnModal: false,
-                },
-                twitter: {
-                  name: "twitter login",
-                  showOnModal: false,
-                },
-                github: {
-                  name: "github login",
-                  showOnModal: false,
-                },
-                apple: {
-                  name: "apple login",
-                  showOnModal: false,
-                },
-                x: {
-                  name: "x login",
-                  showOnModal: false,
-                },
-                wechat: {
-                  name: "wechat login",
-                  showOnModal: false,
-                },
-                weibo: {
-                  name: "weibo login",
-                  showOnModal: false,
-                },
-                kakao: {
-                  name: "kakao login",
-                  showOnModal: false,
-                },
-                farcaster: {
-                  name: "farcaster login",
-                  showOnModal: false,
-                },
-                email_passwordless: {
-                  name: "email_passwordless login",
-                  showOnModal: false
-                },
-                sms_passwordless: {
-                  name: "sms-passwordless login",
-                  showOnModal: false
-                }
-              },
-              // setting it to false will hide all social login methods from modal.
-              showOnModal: true,
-            },
-          },
-        });
-        setProvider(web3auth.provider);
-
-        if (web3auth.connected) {
-          setLoggedIn(true);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    init();
-  }, []);
-
-  const login = async () => {
-    if (!web3auth) {
-      console.log("web3auth not initialized yet");
-      return;
+    // Only perform the redirect logic *after* loading is complete and user is logged in
+    if (!isLoading && loggedIn && user) {
+      console.log("User logged in on Home page, redirecting:", user);
+      // You might want to redirect here based on user role or onboarding status
+      // Example: if (!user.isOnboarded) router.push('/onboarding');
+      // The redirect after login is handled in AuthContext, but you can add more logic here.
+      // The original code redirected to /patient after saving user.
+      // Let's add that redirect here for clarity if the user lands on home while logged in.
+      // Consider if '/onboarding' or '/patient' is the correct destination.
+      // Sticking to the original logic's redirect target:
+      router.push(`${user.role?.toLowerCase()}`);
     }
-    const web3authProvider = await web3auth.connect();
+  }, [isLoading, loggedIn, user, router]);
 
-    if (web3auth.connected) {
-      setLoggedIn(true);
-    }
-    setProvider(web3authProvider);
-  };
-
-  const logout = async () => {
-      if (!web3auth) {
-          console.log("web3auth not initialized yet");
-          return;
-      }
-      await web3auth.logout();
-      setProvider(null);
-      setLoggedIn(false);
-  };
-
-  const saveUserToDB = async () => {
-    if (!web3auth) {
-      console.log("web3auth not initialized yet")
-      return;
-    }
-    console.log("setting user");
-    const user = await web3auth.getUserInfo();
-    const response = await axios.post('/api/auth/signup/', {
-      email: user.email
-    });
-
-    console.log("response: ", response.data);
-
-    if (response.data.success) {
-      router.push('/patient');
-    }
+  // Now, handle the loading state return *after* all hooks have been called
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
   }
-
-  useEffect(() => {
-    if (loggedIn && web3auth?.connected) {
-      saveUserToDB();
-    }
-  }, [loggedIn, web3auth?.connected]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -221,27 +48,36 @@ export default function Home() {
             Your trusted partner in healthcare management. Streamline your medical journey with our comprehensive platform.
           </p>
           <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-            {
-              loggedIn ? (
+            {loggedIn ? (
+              <div className="flex space-x-4">
                 <div className="rounded-md shadow">
+                   {/* Link to onboarding or patient dashboard based on your flow */}
                   <Link
-                    href='/onboarding'
+                    href='/patient' // Changed from /onboarding to match original redirect logic
                     className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
                   >
-                    Dashboard
+                    Go to Dashboard
                   </Link>
                 </div>
-              ) : (
                 <div className="rounded-md shadow">
                   <button
-                    onClick={login}
-                    className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                    onClick={logout} // Add logout button
+                    className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
                   >
-                    Login
+                    Logout
                   </button>
                 </div>
-              )
-            }
+              </div>
+            ) : (
+              <div className="rounded-md shadow">
+                <button
+                  onClick={login} // Use login from context
+                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                >
+                  Login / Sign Up
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -32,23 +32,25 @@ model User {
   email          String   @unique
   encryptionKey  String?
   dataAccount String? @unique
-  roleId         String
-  role           Role     @relation(fields: [roleId], references: [id])
-  patient        Patient?
-  doctor         Doctor?
-  admin          Admin?
+  idToken     String?
+  role        RoleName @default(NOROLE) // Add direct enum field with default
+  patient     Patient?
+  doctor      Doctor?
+  admin       Admin?
 }
 
-model Role {
-  id    String @id @default(cuid())
-  name  RoleName @unique
-  users User[]
-}
+// Remove the Role model entirely
+// model Role {
+//   id    String @id @default(cuid())
+//   name  RoleName @unique
+//   users User[]
+// }
 
 enum RoleName {
   PATIENT
   DOCTOR
   ADMIN
+  NOROLE
 }
 
 model Patient {
@@ -72,7 +74,8 @@ model Doctor {
   email         String          @unique
   specialty     String
   appointments  Appointment[]
-  hospitals     Hospital[]      @relation("DoctorHospitals") // Removed references: [id]
+  hospitalId    String?
+  hospital      Hospital?  @relation(fields: [hospitalId], references: [id])
   createdAt     DateTime        @default(now())
 }
 
@@ -97,7 +100,7 @@ model Hospital {
   zipCode    String
   country    String
   admins     Admin[]   @relation("HospitalAdmins")
-  doctors    Doctor[]  @relation("DoctorHospitals")
+  doctors    Doctor[]
 }
 
 model MedicalReport {
