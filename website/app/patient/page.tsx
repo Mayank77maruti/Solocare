@@ -185,7 +185,7 @@ export default function PatientDashboard() {
         );
         console.log("decryptedData initially: ", decryptedData);
         const recordToInsert: recordData = {
-          date: record.date,
+          date: new Date().toISOString(),
           fileUrl: fileUrl,
         };
         decryptedData.push(recordToInsert);

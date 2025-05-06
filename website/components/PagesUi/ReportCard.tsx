@@ -1,62 +1,47 @@
 import { Report } from '@/lib/mockData';
-import SeverityBadge from './SeverityBadge';
+import { Calendar } from 'lucide-react';
+import Link from 'next/link';
+
+interface recordData {
+  date: string;
+  fileUrl: string;
+}
 
 interface ReportCardProps {
-  report: Report;
-  showPatientInfo?: boolean;
-  showDoctorInfo?: boolean;
+  report: recordData;
 }
 
 export default function ReportCard({
   report,
-  showPatientInfo = false,
-  showDoctorInfo = false,
 }: ReportCardProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString || new Date());
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 capitalize">
-            {report.type.replace('-', ' ')} Report
-          </h3>
-          <p className="text-sm text-gray-500">{report.date}</p>
+    <div className="bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition-shadow">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-4">
+          <div className="text-gray-500 flex">
+            <Calendar className="h-6 w-6" />
+            <p className="text-sm text-gray-800 ml-2">{formatDate(report.date)}</p>
+          </div>
         </div>
-        <SeverityBadge severity={report.severity} />
+        <Link
+          href={report.fileUrl}
+          target='_blank'
+          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+        >
+          <span className="mr-2">View Report</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </Link>
       </div>
-
-      {showPatientInfo && (
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-700">Patient Information</h4>
-          <p className="text-sm text-gray-600">ID: {report.patientId}</p>
-        </div>
-      )}
-
-      {showDoctorInfo && (
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-700">Doctor Information</h4>
-          <p className="text-sm text-gray-600">ID: {report.doctorId}</p>
-        </div>
-      )}
-
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700">Report Content</h4>
-        <p className="text-sm text-gray-600 mt-1">{report.content}</p>
-      </div>
-
-      {report.attachments && report.attachments.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium text-gray-700">Attachments</h4>
-          <ul className="mt-1">
-            {report.attachments.map((attachment, index) => (
-              <li key={index} className="text-sm text-blue-600 hover:text-blue-800">
-                <a href="#" className="underline">
-                  {attachment}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
-} 
+}
