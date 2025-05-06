@@ -42,3 +42,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Failed to save patient details' }, { status: 500 });
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get('email');
+
+    if (!email) {
+      return NextResponse.json({ message: 'Email is required' }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+      include: {
+        patient: true,
+      },
+    });
+
+    if (!user || !user.patient) {
+      return NextResponse.json({ message: 'Patient not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, patientId: user.patient.id }, { status: 200 });
+
+  } catch (error) {
+    console.error('Error fetching patient ID:', error);
+    return NextResponse.json({ success: false, message: 'Failed to fetch patient ID' }, { status: 500 });
+  }
+}

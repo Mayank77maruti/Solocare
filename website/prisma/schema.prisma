@@ -101,6 +101,7 @@ model Hospital {
   country    String
   admins     Admin[]   @relation("HospitalAdmins")
   doctors    Doctor[]
+  appointments Appointment[]
 }
 
 model MedicalReport {
@@ -136,6 +137,8 @@ model Appointment {
   createdAt       DateTime          @default(now())
   preScreening    PreScreening?     @relation(fields: [preScreeningId], references: [id])
   preScreeningId  String?           @unique // Added @unique for one-to-one relation
+  hospitalId      String?
+  hospital        Hospital?         @relation(fields: [hospitalId], references: [id])
 
   // Additional patient snapshot details
   patientName     String
@@ -143,6 +146,7 @@ model Appointment {
   patientGender   String
   patientEmail    String
   patientPhone    String
+  submit          Boolean?           @default(false)
 }
 
 enum AppointmentStatus {

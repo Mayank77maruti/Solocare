@@ -15,13 +15,6 @@ export default function Home() {
     // Only perform the redirect logic *after* loading is complete and user is logged in
     if (!isLoading && loggedIn && user) {
       console.log("User logged in on Home page, redirecting:", user);
-      // You might want to redirect here based on user role or onboarding status
-      // Example: if (!user.isOnboarded) router.push('/onboarding');
-      // The redirect after login is handled in AuthContext, but you can add more logic here.
-      // The original code redirected to /patient after saving user.
-      // Let's add that redirect here for clarity if the user lands on home while logged in.
-      // Consider if '/onboarding' or '/patient' is the correct destination.
-      // Sticking to the original logic's redirect target:
       router.push(`${user.role?.toLowerCase()}`);
     }
   }, [isLoading, loggedIn, user, router]);

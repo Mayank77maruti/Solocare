@@ -11,6 +11,13 @@ import axios from "axios"; // Keep axios for API calls
 import { useRouter } from 'next/navigation';
 import { SessionData } from '@/lib/session'; // Import SessionData type
 
+// data key 
+
+import { getBalance, getPrivateKey } from "@/utils/web3AuthHandler";
+import { Keypair } from "@solana/web3.js";
+import { createDataAccount } from "@/utils/transactionHandler";
+
+
 const clientId = "BA1oKhn6yjmiOTEc_aKzfjNuKcjsGba0_TSrQ18at3CCXkOSGlDD5NKv6Blz3Gv3q4Be8azAUr5vwyBcqT3Ewcc"; // Use your actual Client ID
 
 interface AuthContextType {
@@ -32,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loggedIn, setLoggedIn] = useState(false); // Default to false
   const [user, setUser] = useState<SessionData | null>(null); // Use SessionData type
   const [isLoading, setIsLoading] = useState(true); // Start loading until session is checked
-
+  const [dataAccount, setDataAccount] = useState<string | null>(null);
   const chainConfig = getSolanaChainConfig(0x3)!; // Devnet
 
   // Effect to initialize Web3Auth instance (runs once)
@@ -140,6 +147,92 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkSession();
   }, []); // Empty dependency array ensures this runs only once
 
+  const hexToUint8Array = (hexString: string): Uint8Array => {
+    if (hexString.length % 2 !== 0) {
+        throw new Error('Invalid hex string');
+    }
+    const arrayBuffer = new Uint8Array(hexString.length / 2);
+    for (let i = 0; i < hexString.length; i += 2) {
+        const byteValue = parseInt(hexString.substr(i, 2), 16);
+        arrayBuffer[i / 2] = byteValue;
+    }
+    return arrayBuffer;
+  };
+
+  function uiConsole(...args: any[]): void {
+    const el = document.querySelector("#console>p");
+    if (el) {
+      el.innerHTML = JSON.stringify(args || {}, null, 2);
+    }
+  }
+
+  const createDataAccountForUser = async () => {
+    if (!web3auth) {
+      console.log("web3auth not initialized yet")
+      return;
+    }
+    const user = await web3auth.getUserInfo();
+    const userPrivateKey = await getPrivateKey(provider);
+    if (!userPrivateKey) return console.log("userPrivateKey not found");
+    console.log("userPrivateKey: ", userPrivateKey);
+    const privateKeyUint8Array = hexToUint8Array(userPrivateKey);
+    const userKeyPair = Keypair.fromSecretKey(privateKeyUint8Array);
+    const dataPublicKey = await createDataAccount(userKeyPair, user.email);
+
+    console.log("dataPublicKey: ", dataPublicKey);
+
+    try {
+      // Save data account
+      const saveDataAccountResponse = await axios.post('/api/user/save-data-account', {
+        email: user.email,
+        dataAccount: dataPublicKey, // Assuming dataPublicKey is a PublicKey object
+      });
+
+      if (saveDataAccountResponse.data.success) {
+        console.log("Data account saved successfully");
+      } else {
+        console.error("Failed to save data account:", saveDataAccountResponse.data.error);
+      }
+
+      // Save encryption key (Assuming you have a function to get the encryption key)
+      const encryptionKey = userPrivateKey; // Or however you derive/get the encryption key
+      const saveEncryptionKeyResponse = await axios.post('/api/user/save-encryption-key', {
+        email: user.email,
+        encryptionKey: encryptionKey,
+      });
+
+      if (saveEncryptionKeyResponse.data.success) {
+        console.log("Encryption key saved successfully");
+      } else {
+        console.error("Failed to save encryption key:", saveEncryptionKeyResponse.data.error);
+      }
+
+    } catch (error) {
+      console.error("Error saving data account or encryption key:", error);
+    }
+  }
+
+  const checkForDataAccount = async () => {
+    if (!web3auth) {
+      console.log("web3auth not initialized yet")
+      return;
+    }
+    const user = await web3auth.getUserInfo();
+    const response = await axios.post('/api/user/get-data-account/', {
+      email: user.email
+    });
+    console.log("api complete");
+    console.log("checkForDataAccount: ",response);
+
+    if (!response.data.success) {
+      console.log("Data account not found");
+      setDataAccount(null);
+    } else {
+      console.log("Date account found");
+      setDataAccount(response.data.dataAccount);
+    }
+  }
+
 
   // Login function updated to create server session
   const login = async () => {
@@ -184,6 +277,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
          throw new Error("Web3Auth connection failed or provider not available.");
       }
+      // **Data Account Check and Creation Logic**
+      // await checkForDataAccount();
+      // if (!dataAccount) {
+      //   console.log("Creating data account...");
+      //   await createDataAccountForUser();
+      //   await checkForDataAccount(); // Refetch to ensure it exists
+      // }
+      // **End Data Account Check and Creation Logic**
     } catch (error) {
       console.error("Login Process Error:", error);
       // Reset state on error

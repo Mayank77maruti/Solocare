@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from 'next/link';
 import Navbar from "@/components/PagesUi/Navbar";
 import FileUpload from "@/components/PagesUi/FileUpload";
 import { mockAppointments } from "@/lib/mockData";
@@ -394,6 +395,7 @@ export default function PatientDashboard() {
         <h1 className="text-2xl font-bold text-gray-900 mb-8">
           Patient Dashboard
         </h1>
+        <Link href="/patient/hospitals">Select Hospital</Link>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Upcoming Appointments */}

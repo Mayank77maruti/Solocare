@@ -14,12 +14,13 @@ export async function POST(req: NextRequest) {
             }
         });
 
-        if (!existingUser) {
+        if (!existingUser?.dataAccount) {
             return NextResponse.json({
                 success: false,
                 message: "User does not exist"
             });
         }
+        console.log("api",existingUser.dataAccount);
 
         return NextResponse.json({
             dataAccount: existingUser.dataAccount,

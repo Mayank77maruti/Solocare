@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, RoleName } from '@prisma/client'; // Import RoleName
+import { PrismaClient, RoleName } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +11,16 @@ interface HospitalDetails {
   zipCode: string;
   country: string;
   adminEmail: string; // Add adminEmail
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const hospitals = await prisma.hospital.findMany();
+    return NextResponse.json({ success: true, data: hospitals });
+  } catch (error) {
+    console.error('Error fetching hospitals:', error);
+    return NextResponse.json({ success: false, message: 'Failed to fetch hospitals' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {

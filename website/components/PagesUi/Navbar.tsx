@@ -29,7 +29,6 @@ export default function Navbar({ role }: NavbarProps) {
   // Determine the correct dashboard link based on role or user data if available
   // This part might need refinement based on how role is determined post-login
   const dashboardHref = role ? `/${role}` : (user?.email ? '/patient' : '/'); // Default to /patient if logged in but no role prop
-
   // Loading state from context
   if (isLoading) {
     // Optional: Render a minimal loading state for the navbar buttons
@@ -63,6 +62,7 @@ export default function Navbar({ role }: NavbarProps) {
     { href: '/patient', label: 'Dashboard' },
     { href: '/patient/reports', label: 'Reports' },
     { href: '/patient/chat', label: 'Chat' },
+    { href: '/patient/appointments', label: 'Appointments' },
   ];
 
   const links = role === 'admin' 
