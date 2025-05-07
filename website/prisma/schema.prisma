@@ -26,17 +26,17 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  firstname      String?
-  lastname       String?
-  email          String   @unique
-  encryptionKey  String?
-  dataAccount String? @unique
-  idToken     String?
-  role        RoleName @default(NOROLE) // Add direct enum field with default
-  patient     Patient?
-  doctor      Doctor?
-  admin       Admin?
+  id            String   @id @default(cuid())
+  firstname     String?
+  lastname      String?
+  email         String   @unique
+  encryptionKey String?
+  dataAccount   String?  @unique
+  idToken       String?
+  role          RoleName @default(NOROLE) // Add direct enum field with default
+  patient       Patient?
+  doctor        Doctor?
+  admin         Admin?
 }
 
 // Remove the Role model entirely
@@ -54,53 +54,53 @@ enum RoleName {
 }
 
 model Patient {
-  id             String          @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id])
-  name           String
-  email          String          @unique
-  phone          String
-  reports        MedicalReport[]
-  appointments   Appointment[]
-  preScreenings  PreScreening[]
-  createdAt      DateTime        @default(now())
-}
-
-model Doctor {
   id            String          @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id])
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id])
   name          String
   email         String          @unique
-  specialty     String
+  phone         String
+  reports       MedicalReport[]
   appointments  Appointment[]
-  hospitalId    String?
-  hospital      Hospital?  @relation(fields: [hospitalId], references: [id])
+  preScreenings PreScreening[]
   createdAt     DateTime        @default(now())
 }
 
+model Doctor {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id])
+  name         String
+  email        String        @unique
+  specialty    String
+  appointments Appointment[]
+  hospitalId   String?
+  hospital     Hospital?     @relation(fields: [hospitalId], references: [id])
+  createdAt    DateTime      @default(now())
+}
+
 model Admin {
-  id            String   @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id])
-  name          String
-  email         String   @unique
-  hospitalId    String
-  hospital      Hospital @relation("HospitalAdmins", fields: [hospitalId], references: [id]) // Added relation name
+  id                   String        @id @default(uuid())
+  userId               String        @unique
+  user                 User          @relation(fields: [userId], references: [id])
+  name                 String
+  email                String        @unique
+  hospitalId           String
+  hospital             Hospital      @relation("HospitalAdmins", fields: [hospitalId], references: [id]) // Added relation name
   approvedAppointments Appointment[] // Added inverse relation
-  createdAt     DateTime @default(now())
+  createdAt            DateTime      @default(now())
 }
 
 model Hospital {
-  id         String    @id @default(uuid())
-  name       String
-  address    String
-  city       String
-  state      String
-  zipCode    String
-  country    String
-  admins     Admin[]   @relation("HospitalAdmins")
-  doctors    Doctor[]
+  id           String        @id @default(uuid())
+  name         String
+  address      String
+  city         String
+  state        String
+  zipCode      String
+  country      String
+  admins       Admin[]       @relation("HospitalAdmins")
+  doctors      Doctor[]
   appointments Appointment[]
 }
 
@@ -113,21 +113,28 @@ model MedicalReport {
 }
 
 model PreScreening {
-  id         String   @id @default(uuid())
-  patient    Patient  @relation(fields: [patientId], references: [id])
-  patientId  String
-  summary    String
-  symptoms   String
-  severity   String
-  createdAt  DateTime @default(now())
-  appointment Appointment? // Added inverse relation
+  id               String            @id @default(uuid())
+  patient          Patient           @relation(fields: [patientId], references: [id])
+  patientId        String
+  status           String? // Normal, Elevated, High, etc.
+  summary          String?
+  measurement      Measurement[] // Linked to Measurement
+  lastVisit        String?
+  isFirstVisit     Boolean?
+  symptoms         Symptom[]
+  assessments      Assessment[]
+  recommendedTests RecommendedTest[]
+  familyHistories  FamilyHistory[]
+  concerns         Concern[]
+  createdAt        DateTime          @default(now())
+  appointment      Appointment? // Added inverse relation
 }
 
 model Appointment {
   id              String            @id @default(uuid())
   patient         Patient           @relation(fields: [patientId], references: [id])
   patientId       String
-  doctor          Doctor?            @relation(fields: [doctorId], references: [id])
+  doctor          Doctor?           @relation(fields: [doctorId], references: [id])
   doctorId        String?
   adminApprovedBy Admin?            @relation(fields: [adminId], references: [id])
   adminId         String?
@@ -141,12 +148,12 @@ model Appointment {
   hospital        Hospital?         @relation(fields: [hospitalId], references: [id])
 
   // Additional patient snapshot details
-  patientName     String
-  patientAge      Int
-  patientGender   String
-  patientEmail    String
-  patientPhone    String
-  submit          Boolean?           @default(false)
+  patientName   String
+  patientAge    Int
+  patientGender String
+  patientEmail  String
+  patientPhone  String
+  submit        Boolean? @default(false)
 }
 
 enum AppointmentStatus {
@@ -154,4 +161,60 @@ enum AppointmentStatus {
   APPROVED
   REJECTED
   COMPLETED
+}
+
+model Measurement {
+  id             String       @id @default(uuid())
+  PreScreeningId String       @unique 
+  preScreening   PreScreening @relation(fields: [PreScreeningId], references: [id])
+  systolic       Int?
+  diastolic      Int?
+  bpm            Int?
+  date           String?
+  time           String?
+}
+
+model Symptom {
+  id          String  @id @default(uuid())
+  PreScreeningId String       @unique 
+  preScreening   PreScreening @relation(fields: [PreScreeningId], references: [id])
+  name        String?
+  description String?
+  onset       String?
+  severity    String?
+  quality     String?
+  timing      String?
+}
+
+model Assessment {
+  id          String  @id @default(uuid())
+  PreScreeningId String       @unique 
+  preScreening   PreScreening @relation(fields: [PreScreeningId], references: [id])
+  condition   String?
+  likelihood  Int?
+  description String?
+}
+
+model RecommendedTest {
+  id       String  @id @default(uuid())
+  PreScreeningId String       @unique 
+  preScreening   PreScreening @relation(fields: [PreScreeningId], references: [id])
+  name     String?
+  purpose  String?
+}
+
+model FamilyHistory {
+  id         String  @id @default(uuid())
+  PreScreeningId String       @unique 
+  preScreening   PreScreening @relation(fields: [PreScreeningId], references: [id])
+  relation   String?
+  conditions String?
+  notes      String?
+}
+
+model Concern {
+  id          String  @id @default(uuid())
+  PreScreeningId String       @unique 
+  preScreening   PreScreening @relation(fields: [PreScreeningId], references: [id])
+  concernText String?
 }
