@@ -10,6 +10,8 @@
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
+    "@11labs/react": "^0.1.4",
+    "@lottiefiles/dotlottie-react": "^0.13.5",
     "@prisma/client": "^6.7.0",
     "@solana/web3.js": "^1.98.2",
     "@web3auth/base": "^9.7.0",

@@ -85,7 +85,7 @@ export function Conversation() {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
-        agentId: "gov5FbZatBEOuAPlzyhF",
+        agentId: "d2bmUqrEjyhhhNF08Jmh",
         dynamicVariables: { 
           prescreeningIdString: appointmentId
         },
@@ -215,6 +215,8 @@ export function Conversation() {
     </div>
   );
 }
+
+export default Conversation;
 
 
 
