@@ -1,25 +1,16 @@
-# Use the official Node.js image as a base
-FROM node:18-alpine AS base
-
-# Set the working directory inside the container
-WORKDIR /usr/src/website/app
-
-# Copy package.json and package-lock.json first to leverage Docker cache
-COPY package*.json ./
-COPY prisma ./prisma/
-
-
-# Install dependencies with caching
-RUN npm ci --legacy-peer-deps
-
-# Copy application code after dependencies are installed
-COPY . .
-
-# Generate Prisma Client
+FROM node:20-alpine
+WORKDIR /app
+COPY ./website/package*.json ./
+RUN if grep -q "postinstall" package.json; then \
+    sed -i 's/"postinstall": "npx prisma generate"/"postinstall": "echo Skipping Prisma generate during install"/' package.json; \
+    fi
+RUN npm install --ignore-scripts
+RUN npm install @lottiefiles/dotlottie-react @11labs/react
+COPY ./website/ ./
+RUN mkdir -p prisma && \
+    if [ ! -f ./prisma/schema.prisma ]; then \
+    echo 'datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\ngenerator client {\n  provider = "prisma-client-js"\n}' > ./prisma/schema.prisma; \
+    fi
 RUN npx prisma generate
-
-# Expose the port that Next.js uses
 EXPOSE 3000
-
-# Default command to run Next.js in development mode
 CMD ["npm", "run", "dev"]
