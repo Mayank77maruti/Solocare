@@ -48,7 +48,7 @@ Our modular architecture allows each component to work in harmony, delivering a 
 
 #### 4. AI Services
 
-* Voice triage and symptom extraction via **Elysian Labs**
+* Voice triage and symptom extraction via **Eleven labs**
 * Smart diagnosis and report drafting powered by **Gemini (Text Generation)**
 * Automated medical test recommendations
 
@@ -87,8 +87,8 @@ Our modular architecture allows each component to work in harmony, delivering a 
 | Frontend    | Next.js, Tailwind CSS, Web3Auth        |
 | Backend     | Node.js, Prisma, RenderDB              |
 | Blockchain  | Solana, IPFS                           |
-| AI Services | Gemini (Text Generation), Elysian Labs |
-| DevOps      | GitHub Actions, Docker, AWS EC2        |
+| AI Services | Gemini (Text Generation), elevenlabs   |
+| DevOps      | GitHub Actions, Docker, DockerHub      |
 
 ---
 
