@@ -73,10 +73,10 @@ Our modular architecture allows each component to work in harmony, delivering a 
 
 ## Security & Privacy First
 
-* Passwordless, **Gmail-based Web3 authentication** for enhanced security and user convenience.
-* **Immutable medical records** via decentralized IPFS storage.
-* Strict **token-based access controls** enforced by the Solana blockchain.
-* Clearly defined **role-based access** to protect sensitive data.
+* Passwordless, **Gmail-based Web3 authentication** for enhanced security and user convenience
+* **Immutable medical records** via decentralized IPFS storage
+* Strict **token-based access controls** enforced by the Solana blockchain
+* Clearly defined **role-based access** to protect sensitive data
 
 ---
 
@@ -88,19 +88,21 @@ Our modular architecture allows each component to work in harmony, delivering a 
 | Backend     | Node.js, Prisma, RenderDB              |
 | Blockchain  | Solana, IPFS                           |
 | AI Services | Gemini (Text Generation), Elysian Labs |
-| DevOps      | GitHub Actions, Docker                 |
+| DevOps      | GitHub Actions, Docker, AWS EC2        |
 
 ---
 
 ## Quick Start
 
-### Launch the platform with Docker Compose:
+### 🐳 Using Docker
+
+#### Launch the platform:
 
 ```bash
 docker compose up
 ```
 
-### Stop the services when done:
+#### Stop the services:
 
 ```bash
 docker compose down
@@ -108,7 +110,48 @@ docker compose down
 
 Access the app at [http://localhost:3000](http://localhost:3000)
 
-> **Note:** Backend and blockchain services require environment variables and API keys configured in `.env` files. See respective directories for `env.example`.
+---
+
+### 💻 Using NPM (Manual Setup)
+
+#### Step 1: Move to frontend directory
+
+```bash
+cd website
+```
+
+#### Step 2: Install dependencies
+
+```bash
+npm install
+npm install @lottiefiles/dotlottie-react @11labs/react
+```
+
+#### Step 3: Run the development server
+
+```bash
+npm run dev
+```
+
+Access the app at [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Environment Variables
+
+Create a `.env` file in website directories. Start with the following variables:
+
+### `.env.example`
+
+```env
+DATABASE_URL=your_database_url
+PINAATA_JWT=your_pinata_jwt
+PINAATA_GATEWAY=your_pinata_gateway_url
+NEXT_PUBLIC_PROGRAM_ADDRESS=your_solana_program_address
+SESSION_PASSWORD=your_actual_complex_password_at_least_32_characters_long
+```
+
+> Make sure `SESSION_PASSWORD` is at least 32 characters long to ensure security.
 
 ---
 
@@ -121,6 +164,4 @@ SoloCare is a collaborative effort involving:
 * Healthcare consultants
 * DevOps engineers
 
-Contributions and feedback are welcome. Reach out to learn how you can participate.
-
----
+We welcome all contributions, feedback, and suggestions! Feel free to [open an issue](https://github.com/Mayank77maruti/Solocare/issues) or submit a pull request.
