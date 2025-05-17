@@ -124,4 +124,3 @@ SoloCare is a collaborative effort involving:
 Contributions and feedback are welcome. Reach out to learn how you can participate.
 
 ---
-
