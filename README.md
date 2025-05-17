@@ -94,7 +94,25 @@ Our modular architecture allows each component to work in harmony, delivering a 
 
 ## Quick Start
 
-### 🐳 Using Docker
+### 🛠️ First Method (Without Docker Compose)
+
+#### Build the Docker image:
+
+```bash
+sudo docker build -t solocare-website .
+```
+
+#### Run the container:
+
+```bash
+sudo docker run -p 3000:3000 solocare-website
+```
+
+> ✅ Access the app at: [http://localhost:3000](http://localhost:3000)
+
+---
+
+### 🐳 Second Method (Using Docker Compose)
 
 #### Launch the platform:
 
@@ -108,11 +126,10 @@ docker compose up
 docker compose down
 ```
 
-Access the app at [http://localhost:3000](http://localhost:3000)
+> ✅ Access the app at: [http://localhost:3000](http://localhost:3000)
 
----
 
-### 💻 Using NPM (Manual Setup)
+### 💻 Third Method (NPM Manual Setup)
 
 #### Step 1: Move to frontend directory
 
